@@ -11,10 +11,12 @@ p_load(maps,
       cowplot,
       tidyverse)
 
-# References --------------------------------------------------------------
+
+# Useful references -------------------------------------------------------
 
 # https://github.com/tashapiro/30DayMapChallenge/blob/main/red-beef-map/red-beef-map.R
-# https://www.datanovia.com/en/blog/how-to-create-a-map-using-ggplot2/
+# https://cran.r-project.org/web/packages/biscale/vignettes/biscale.html
+# https://oitco.hylandcloud.com/CDOTRMPop/docpop/docpop.aspx?clienttype=html&docid=8077600
 # https://slu-opengis.github.io/biscale/articles/biscale.html
 # https://timogrossenbacher.ch/2019/04/bivariate-maps-with-ggplot2-and-sf/
 
@@ -34,7 +36,7 @@ crashes <- read_excel("CDOTRM_CD_Crash_Listing_-_2019.xlsx", sheet = 3)
 
 
 # setting up the bivariate chloropleth
-# for me https://cran.r-project.org/web/packages/biscale/vignettes/biscale.html 
+# https://cran.r-project.org/web/packages/biscale/vignettes/biscale.html 
 crashes_bucketed <- bi_class(crashes, x = Day, y = Night, style = "quantile", dim = 3)
 
 
@@ -55,11 +57,11 @@ crash_counties <- left_join(counties, crashes_bucketed, by=c("NAME"="Lookup_coun
 
 
 # pulling in specific fonts, setting formatting used in plot
-font_add("Corbel", "C://Windows//Fonts//corbel.ttf")              # Use the actual file path
-font_add("Impact", "C://Windows//Fonts//impact.ttf")              # Use the actual file path formerly gill sans bold
+font_add("Corbel", "C://Windows//Fonts//corbel.ttf")              # Update to correct file path
+font_add("Impact", "C://Windows//Fonts//impact.ttf")              # Update to correct file path
 
 chart_font<-"Corbel"
-title_font<-"Impact"
+title_font<-"Impact"                                              # not used
 
 font_color<-'#211c1d'
 background<-"white"
@@ -109,4 +111,5 @@ final_plot <- ggdraw() +
             0.25)           # height
 
 
+# saving
 ggsave("crash_map.jpeg", width = 28.5, height = 15.6, units='cm')
