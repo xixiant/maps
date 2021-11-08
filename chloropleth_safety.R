@@ -1,138 +1,112 @@
 library(pacman)
-p_load(ggplot2,
-      maps,
+p_load(maps,
       usdata,
-      dplyr,
       extrafont,
       showtext,
       ggtext,
       ggrepel,
-      tibble)
-
+      readxl,
+      sf,
+      biscale,
+      cowplot,
+      tidyverse)
 
 # References --------------------------------------------------------------
 
 # https://github.com/tashapiro/30DayMapChallenge/blob/main/red-beef-map/red-beef-map.R
 # https://www.datanovia.com/en/blog/how-to-create-a-map-using-ggplot2/
-
+# https://slu-opengis.github.io/biscale/articles/biscale.html
+# https://timogrossenbacher.ch/2019/04/bivariate-maps-with-ggplot2-and-sf/
 
 # data --------------------------------------------------------------------
 
+# set working directory to github file location
+setwd("~/GitHub/maps")
+
+
+# pull county data from the maps package
 counties <- map_data(county)
 
 
-
-#merge world map with data on meat consumpsion
-world_map_df<-left_join(world_map,df_2013, by=c("region"="Entity"))
-summary(df_2013$kg_capita)
-
-#colors from R Color Brewer
+# importing crash data as a tibble (did prep in Excel)
+# https://oitco.hylandcloud.com/CDOTRMPop/docpop/docpop.aspx?clienttype=html&docid=8077600
+crashes <- read_excel("CDOTRM_CD_Crash_Listing_-_2019.xlsx", sheet = 3)
 
 
-
-#fonts
-font_import()
-font_add("Gill Sans", "/Library/Fonts/Gill Sans.otf")              # Use the actual file path
-font_add("Gill Sans Bold", "/Library/Fonts/Gill Sans Bold.otf")    # Use the actual file path
-chart_font<-"Gill Sans"
-title_font<-"Gill Sans Bold"
-
-#text for annotations
-# leaving for reference
-# text_label<-c("Top beef and buffalo meat consumption in Argentina (55.5kg), followed by Brazil (39.3kg)",
-#               "United States ranked as 3rd highest conusmption (32.2kg)",
-#               "Liberia lowest consumption (0.78kg)",
-#               "India 2nd lowest consumption (0.81kg). Roughly 80% population practices Hinduism (prohibits beef).")
-# text_lat<-c(-50,30,-10,-20)
-# text_long<-c(-28,-150,-10,75)
-# text_desc<-c("C1","C2","C3","C4")
-# text_df<-data.frame(text_label,text_lat,text_long,text_desc)
-# 
-# #points
-# point_desc<-c("ARG","IND","USA","LIB","BRZ")
-# point_lat<-c(-36.416,20.593,40,7.4,-14.23)
-# point_long<-c(-63.616,78.96,-110,-9.4,-51.92)
-# point_df<-data.frame(point_desc,point_lat,point_long)
-
-#x is long, #y is lat
-#arrows to point between annotations and dots
+# setting up the bivariate chloropleth
+# for me https://cran.r-project.org/web/packages/biscale/vignettes/biscale.html 
+crashes_bucketed <- bi_class(crashes, x = Day, y = Night, style = "quantile", dim = 3)
 
 
-#setcolors
-#fill colors
-colors<-c(
-  '#fee5d9',
-  '#fcbba1',
-  '#fc9272',
-  '#fb6a4a',
-  '#ef3b2c',
-  '#cb181d',
-  '#99000d')
-background<-'#1C1D21'
-font_color<-"white"
-annotation_color<-"#FF9D00"
+# merging datasets (2020 updates to tibble package require updates to R and sf must be loaded)
+crash_counties <- left_join(counties, crashes_bucketed, by=c("NAME"="Lookup_county"))
 
-ggplot()+
-  geom_polygon(
-    data=world_map_df,
-    aes(x=long,y=lat,group=group, fill=bin),
-    color=background, size=0.2
-  )+
-  guides(fill = 
-           guide_legend(title.position = "top",
-                        title.hjust =0.5,
-                        nrow = 1))+
-  geom_polygon(
-    data=world_map_df%>%filter(is.na(kg_capita)),
-    aes(x=long,y=lat,group=group),
-    fill="grey",
-    color=background, size=0.2
-  )+
-  scale_fill_manual(values=colors, na.translate = F)+
-  geom_point(
-    data=point_df,
-    inherit.aes=F,
-    aes(x=point_long,y=point_lat),
-    color='#2E1F27'
-  )+
-  geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2),
-               arrow = arrow(length = unit(0.07, "inch")), size = 0.4,
-               color = annotation_color)+
-  geom_textbox(
-    data=text_df%>%filter(text_desc %in% c("C1","C4")),
-    aes(x=text_long,y=text_lat,label=text_label),
-    size=2.5,
-    width = unit(0.1, "npc"),
-    fill=background,
-    color="white",
-    box.color=annotation_color
-  )+
-  geom_textbox(
-    data=text_df%>%filter(text_desc %in% c("C3","C2")),
-    aes(x=text_long,y=text_lat,label=text_label),
-    size=2.5,
-    width = unit(0.07, "npc"),
-    fill=background,
-    color="white",
-    box.color=annotation_color
-  )+
-  coord_map(xlim=c(-180,180))+
-  theme_void()+
-  theme(
-    plot.background=element_rect(fill=background),
-    legend.position="top",
-    text=element_text(color=font_color, family=chart_font),
-    plot.title=element_text(family=title_font,hjust=.5,
-                            vjust=5),
-    plot.subtitle =element_text(hjust=.5, vjust=5),
-    plot.margin = unit(c(0.8, 4.2, 0.8, 4.2), "cm")
-  )+
+
+# formatting + fonts --------------------------------------------------------------
+
+
+# fonts
+# this github exchange was useful: https://github.com/wch/extrafont/issues/32
+# font_import()
+
+
+# see a list of the fonts available to you with the help of extrafont
+# fonts()
+
+
+# pulling in specific fonts, setting formatting used in plot
+font_add("Corbel", "C://Windows//Fonts//corbel.ttf")              # Use the actual file path
+font_add("Impact", "C://Windows//Fonts//impact.ttf")              # Use the actual file path formerly gill sans bold
+
+chart_font<-"Corbel"
+title_font<-"Impact"
+
+font_color<-'#211c1d'
+background<-"white"
+annotation_color<-"#05803e"
+
+
+# chart and chart elements ------------------------------------------------
+
+
+# legend
+legend <- bi_legend(pal = "GrPink",
+                    dim = 3,
+                    xlab = "More daytime crashes",
+                    ylab = "More lower light crashes",
+                    size = 8)
+
+
+# plot
+map <- ggplot()+
+  geom_sf(data = crash_counties,
+          mapping = aes(fill = bi_class),
+          color = "white",
+          size = 0.1,
+          show.legend = FALSE) +
+  bi_scale_fill(pal = "GrPink", dim = 3) +
+  bi_theme(
+    base_family = chart_font,
+    base_size = 18,
+    bg_color = background,
+    font_color = font_color
+  ) +
   labs(
-    title="Beef & Buffalo Meat Consumption Rates (2013)",
-    subtitle="Consumption rate based on kg per capita",
-    fill="Kg Per Capita",
-    caption="Data from OurWorldInData.org | Chart @tanya_shapiro"
+    title="Motorcycle & bicycle accident rates by time of day",
+    subtitle="For counties of the Colorado Front Range",
+    fill="Accidents",
+    caption="Using 2019 Statewide Crash Data Listings from CDOT | @hellville"
   )
 
 
-ggsave("red_beef_map.jpeg", width = 28.5, height = 15.6, units='cm')
+# legend + plot together at last - only visible upon ggsaving
+final_plot <- ggdraw() +
+  draw_plot(map, 0, 0, 1, 1) +
+  draw_plot(legend,
+            0,          # 0 = left side
+            0,             # 0 = bottom
+            0.25,           # width
+            0.25)           # height
+
+
+ggsave("crash_map.jpeg", width = 28.5, height = 15.6, units='cm')
