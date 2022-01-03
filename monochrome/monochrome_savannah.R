@@ -225,5 +225,5 @@ ggsave(final_map,
        width = 10, 
        height = 10, 
        units = "in",
-       dpi = 30)
+       dpi = 200)
 
