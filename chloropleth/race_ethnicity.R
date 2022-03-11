@@ -58,6 +58,8 @@ call_neat <- call_df %>%
     "POC" = 1 - (sum( estimate [variable == "B03002_003"]) / sum ( summary_est [variable == "B03002_003"]))
   )
 
+call_bucket <- NULL
+
 # setting up the bivariate chloropleth
 # https://cran.r-project.org/web/packages/biscale/vignettes/biscale.html 
 call_bucket <- bi_class(call_neat, x = "poverty", y = "POC", style = "quantile", dim = 3)
